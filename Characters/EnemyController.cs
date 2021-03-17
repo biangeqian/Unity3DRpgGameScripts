@@ -12,13 +12,13 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
     private NavMeshAgent agent;
     private Animator anim;
     private Collider coll;
-    private CharacterStats characterStats;
+    protected CharacterStats characterStats;
    
     [Header("Basic Settings")]
     public  float sightRadius;//怪物可视范围
     public bool isGuard;//是否是守卫型的敌人
     private float speed;//记录原有速度
-    private GameObject attackTarget;//攻击目标
+    protected GameObject attackTarget;//攻击目标
     public float lookAtTime;//停留时间
     private float remainLookAtTime;
     private float lastAttackTime;//攻击CD
@@ -156,7 +156,7 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
                 if (!FoundPlayer())
                 {
                     isFollow = false;
-                    //agent.isStopped = false;
+                    agent.isStopped = false;//
                     if (remainLookAtTime > 0)
                     {
                         agent.destination = transform.position;
@@ -197,7 +197,8 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
                 break;
             case EnemyStates.DEAD:
                 coll.enabled = false;
-                agent.enabled = false;
+                //agent.enabled = false;//会导致空引用
+                agent.radius = 0;
                 //死亡后延迟两秒销毁
                 Destroy(gameObject, 2f);
                 break;
@@ -270,7 +271,7 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
     //Animation Event
     void Hit()
     {
-        if (attackTarget != null)
+        if (attackTarget != null&&transform.IsFacingTarget(attackTarget.transform))
         {
             var targetStats = attackTarget.GetComponent<CharacterStats>();
             targetStats.TakeDamage(characterStats, targetStats);
