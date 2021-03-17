@@ -1,9 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class CharacterStats : MonoBehaviour
 {
+    //更新血量UI
+    public event Action<int, int> UpdateHealthBarOnAttack;
     //模板数据
     public CharacterData_SO templateData;
 
@@ -48,7 +51,7 @@ public class CharacterStats : MonoBehaviour
     public void TakeDamage(CharacterStats attacker,CharacterStats defender)
     {
         int damage = Mathf.Max(attacker.CurrentDamage() - defender.CurrentDefence,0);
-        CurrentHealth = Mathf.Max(CurrentHealth - damage, 0);
+        defender.CurrentHealth = Mathf.Max(CurrentHealth - damage, 0);
         //暴击时触发挨打的人的受击动画
         if (attacker.isCritical)
         {
@@ -56,17 +59,25 @@ public class CharacterStats : MonoBehaviour
         }
 
         //更新血量UI
-
+        UpdateHealthBarOnAttack?.Invoke(CurrentHealth, MaxHealth);
         //结算经验值
 
     }
+    //重载take damage
+    public void TakeDamage(int damage,CharacterStats defender)
+    {
+        int currentDamage = Mathf.Max(damage - defender.CurrentDefence, 0);
+        defender.CurrentHealth = Mathf.Max(CurrentHealth - currentDamage, 0);
+        UpdateHealthBarOnAttack?.Invoke(CurrentHealth, MaxHealth);
+    }
+
     private int CurrentDamage()
     {
-        float coreDamage = Random.Range(attackData.minDamage, attackData.maxDamage);
+        float coreDamage = UnityEngine.Random.Range(attackData.minDamage, attackData.maxDamage);
         if (isCritical)
         {
             coreDamage *= attackData.criticalMultiplier;
-            Debug.Log("暴击!" + coreDamage);
+            //Debug.Log("暴击!" + coreDamage);
         }
         return (int)coreDamage;
     }
