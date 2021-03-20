@@ -222,11 +222,11 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
     bool FoundPlayer()
     {
         var colliders = Physics.OverlapSphere(transform.position,sightRadius);
-        foreach (var targrt in colliders)
+        foreach (var target in colliders)
         {
-            if (targrt.CompareTag("Player"))
+            if (target.CompareTag("Player"))
             {
-                attackTarget = targrt.gameObject;
+                attackTarget = target.gameObject;
                 return true;
             }
         }
