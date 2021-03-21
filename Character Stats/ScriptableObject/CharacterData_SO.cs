@@ -14,4 +14,35 @@ public class CharacterData_SO : ScriptableObject
     public int baseDefence;
     //当前防御
     public int currentDefence;
+
+    [Header("Kill")]
+    public int killPoint;
+
+    [Header("Level")]
+    public int currentLevel;
+    public int maxLevel;
+    public int baseExp;
+    public int currentExp;
+    //升级后提升百分比
+    public float levelBuff;
+
+    public float LevelMultiplier { get { return 1 + (currentLevel - 1) * levelBuff; } }
+
+
+    public void UpdateExp(int point)
+    {
+        currentExp += point;
+        if (currentExp >= baseExp)
+        {
+            LevelUp();
+        }
+    }
+    private void LevelUp()
+    {
+        currentLevel = Mathf.Clamp(currentLevel + 1,0,maxLevel);
+        baseExp += (int)(baseExp * LevelMultiplier);
+        maxHealth = (int)(maxHealth * (1 + levelBuff));
+        currentHealth = maxHealth;
+        Debug.Log("LEVEL UP!" + currentLevel + "Max Health:" + maxHealth);
+    }
 }
