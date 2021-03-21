@@ -61,7 +61,10 @@ public class CharacterStats : MonoBehaviour
         //更新血量UI
         UpdateHealthBarOnAttack?.Invoke(CurrentHealth, MaxHealth);
         //结算经验值
-
+        if (defender.CurrentHealth <= 0)
+        {
+            attacker.characterData.UpdateExp(defender.characterData.killPoint);
+        }
     }
     //重载take damage
     public void TakeDamage(int damage,CharacterStats defender)
@@ -69,6 +72,10 @@ public class CharacterStats : MonoBehaviour
         int currentDamage = Mathf.Max(damage - defender.CurrentDefence, 0);
         defender.CurrentHealth = Mathf.Max(CurrentHealth - currentDamage, 0);
         UpdateHealthBarOnAttack?.Invoke(CurrentHealth, MaxHealth);
+        if (defender.CurrentHealth <= 0)
+        {
+            GameManager.Instance.playerStats.characterData.UpdateExp(defender.characterData.killPoint);
+        }
     }
 
     private int CurrentDamage()
