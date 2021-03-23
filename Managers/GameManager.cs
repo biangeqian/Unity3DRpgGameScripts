@@ -4,6 +4,12 @@ using UnityEngine;
 
 public class GameManager : Singleton<GameManager>
 {
+    protected override void Awake()
+    {
+        base.Awake();
+        DontDestroyOnLoad(this);
+    }
+
     public CharacterStats playerStats;
     //收集观察者模式订阅
     List<IEndGameObserver> endGameObservers = new List<IEndGameObserver>();
@@ -29,5 +35,15 @@ public class GameManager : Singleton<GameManager>
             observer.EndNotify();
         }
     }
-    
+    public Transform GetEntrance()
+    {
+        foreach(var item in FindObjectsOfType<TransitionDestination>())
+        {
+            if (item.destinationTag == TransitionDestination.DestinationTag.ENTER)
+            {
+                return item.transform;
+            }
+        }
+        return null;
+    }
 }
