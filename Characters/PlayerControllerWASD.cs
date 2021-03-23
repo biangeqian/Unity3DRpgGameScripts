@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.InputSystem;
 
 public class PlayerControllerWASD : MonoBehaviour
 {
@@ -37,6 +37,8 @@ public class PlayerControllerWASD : MonoBehaviour
     [Range(0, 10)]
     public float movementSpeed;
     public bool isThirdPerson;
+    public float jumpSpeed;
+    public float gravity;
 
     private Animator anim;
     private CharacterStats characterStats;
@@ -49,12 +51,15 @@ public class PlayerControllerWASD : MonoBehaviour
         controller = GetComponent<CharacterController>();
         anim = GetComponent<Animator>();
         characterStats = GetComponent<CharacterStats>();
-        
+        cameraSystem = GameObject.FindGameObjectsWithTag("CameraSystem")[0].transform;
+        cameraPivot = GameObject.FindGameObjectsWithTag("CameraPivot")[0].transform;
+        cameraObject = GameObject.FindGameObjectsWithTag("MainCamera")[0].transform;
     }
 
     #region inputControls
     private void OnEnable()
     {
+        GameManager.Instance.RigisterPlayer(characterStats);
         if (inputController == null)
         {
             inputController = new InputController();
@@ -77,7 +82,7 @@ public class PlayerControllerWASD : MonoBehaviour
     #endregion
     void Start()
     {
-        GameManager.Instance.RigisterPlayer(characterStats);
+        SaveManager.Instance.LoadPlayerData();
     }
     void Update()
     {
@@ -105,6 +110,7 @@ public class PlayerControllerWASD : MonoBehaviour
 
         if (MouseLeftClicked)
         {
+            //Debug.Log("攻击");
             Attack();
         }
     }
@@ -121,12 +127,26 @@ public class PlayerControllerWASD : MonoBehaviour
     {
         moveDirection = cameraObject.forward * movementInput.y;
         moveDirection += cameraObject.right * movementInput.x;
-        moveDirection.y = 0;
         Vector3 projectedVelocity = Vector3.ProjectOnPlane(moveDirection, normalVector);
         projectedVelocity.Normalize();
         projectedVelocity *= movementSpeed;
-        //controller.Move(projectedVelocity * Time.deltaTime);//Move不考虑钟离
-        controller.SimpleMove(projectedVelocity);
+
+        projectedVelocity.y = controller.velocity.y;
+
+        if (controller.isGrounded)
+        {
+            projectedVelocity.y = 0;
+            if (Keyboard.current.spaceKey.wasPressedThisFrame)
+            {
+                projectedVelocity += Vector3.up * jumpSpeed;
+            }
+        }
+        else
+        {
+            projectedVelocity += Vector3.down * gravity*Time.deltaTime;
+        }
+        controller.Move(projectedVelocity * Time.deltaTime);//Move不考虑钟离
+        //controller.SimpleMove(projectedVelocity);
     }
     //角色转向
     private void MovementRotation()
@@ -235,6 +255,11 @@ public class PlayerControllerWASD : MonoBehaviour
             }
         }     
     }
+
+    //publc bool wasGround()
+    //{
+     //   var colliders=controller.c
+    //}
 
     private void LateUpdate()
     {
