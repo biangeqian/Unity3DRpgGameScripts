@@ -3,16 +3,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class SceneController : Singleton<SceneController>
+public class SceneController : Singleton<SceneController>,IEndGameObserver
 {
     public GameObject playerPrefeb;
+    public SceneFader sceneFaderPrefeb;
     GameObject player;
     protected override void Awake()
     {
         base.Awake();
         DontDestroyOnLoad(this);
     }
-
+    void Start()
+    {
+        GameManager.Instance.AddObserver(this);
+    }
     public void TransitionToDestination(TransitionPoint transitionPoint)
     {
         switch (transitionPoint.transitionType)
@@ -72,12 +76,15 @@ public class SceneController : Singleton<SceneController>
     }
     IEnumerator LoadLevel(string scene)
     {
+        SceneFader fade = Instantiate(sceneFaderPrefeb);
         if (scene != "")
         {
+            yield return StartCoroutine(fade.FadeOut(2f));
             yield return SceneManager.LoadSceneAsync(scene);
             yield return player = Instantiate(playerPrefeb, GameManager.Instance.GetEntrance().position, GameManager.Instance.GetEntrance().rotation);
             //保存
             SaveManager.Instance.SavePlayerData();
+            yield return StartCoroutine(fade.FadeIn(2f));
             yield break;
         }  
     }
@@ -90,5 +97,11 @@ public class SceneController : Singleton<SceneController>
             yield break;
         }
         yield break;
+    }
+
+    public void EndNotify()
+    {
+        //角色死亡传送回出生点,复活
+        //TODO
     }
 }
