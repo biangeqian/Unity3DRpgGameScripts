@@ -12,6 +12,10 @@ public class CharacterStats : MonoBehaviour
 
     public CharacterData_SO characterData;
     public AttackData_SO attackData;
+    private AttackData_SO baseAttackData;//即空手攻击力
+    [Header("Weapon")]
+    public Transform weaponSlot;
+
     [HideInInspector]
     public bool isCritical;
 
@@ -21,6 +25,7 @@ public class CharacterStats : MonoBehaviour
         {
             characterData = Instantiate(templateData);
         }
+        baseAttackData=Instantiate(attackData);
     }
 
     #region Read from Data_SO
@@ -87,6 +92,44 @@ public class CharacterStats : MonoBehaviour
             //Debug.Log("暴击!" + coreDamage);
         }
         return (int)coreDamage;
+    }
+    #endregion
+
+    #region Equip Weapon
+    public void ChangeWeapon(ItemData_SO weapon)
+    {
+        UnEquipWeapon();
+        EquipWeapon(weapon);
+    }
+    public void EquipWeapon(ItemData_SO weapon)
+    {
+        if (weapon.weaponPrefab != null)
+        {
+            Instantiate(weapon.weaponPrefab, weaponSlot);
+            //更新攻击属性
+            attackData.ApplyWeaponData(weapon.weaponData);
+        }
+    }
+    public void UnEquipWeapon()
+    {
+        if(weaponSlot.transform.childCount!=0)
+        {
+            for(int i=0;i<weaponSlot.transform.childCount;i++)
+            {
+                Destroy(weaponSlot.transform.GetChild(i).gameObject);
+            }
+        }
+        attackData.ApplyWeaponData(baseAttackData);
+        //TODO:切换动画
+    }
+    #endregion
+    #region Apply Data Change
+    public void ApplyHealth(int amount)
+    {
+        if(CurrentHealth+amount<=MaxHealth)
+            CurrentHealth+=amount;
+        else
+            CurrentHealth=MaxHealth;
     }
     #endregion
 }
