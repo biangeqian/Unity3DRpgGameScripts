@@ -33,6 +33,7 @@ public class SceneController : Singleton<SceneController>,IEndGameObserver
     {
         //保存数据
         SaveManager.Instance.SavePlayerData();
+        InventoryManager.Instance.SaveData();
         if (SceneManager.GetActiveScene().name != sceneName)
         {
             //异步加载
@@ -76,14 +77,15 @@ public class SceneController : Singleton<SceneController>,IEndGameObserver
     }
     IEnumerator LoadLevel(string scene)
     {
-        SceneFader fade = Instantiate(sceneFaderPrefeb);
         if (scene != "")
         {
+            SceneFader fade = Instantiate(sceneFaderPrefeb);
             yield return StartCoroutine(fade.FadeOut(2f));
             yield return SceneManager.LoadSceneAsync(scene);
             yield return player = Instantiate(playerPrefeb, GameManager.Instance.GetEntrance().position, GameManager.Instance.GetEntrance().rotation);
             //保存
             SaveManager.Instance.SavePlayerData();
+            InventoryManager.Instance.SaveData();
             yield return StartCoroutine(fade.FadeIn(2f));
             yield break;
         }  
@@ -101,7 +103,30 @@ public class SceneController : Singleton<SceneController>,IEndGameObserver
 
     public void EndNotify()
     {
-        //角色死亡传送回出生点,复活
-        //TODO
+        StartCoroutine(Resurrection());
+    }
+    IEnumerator Resurrection()
+    {
+        player = GameManager.Instance.playerStats.gameObject;
+        player.GetComponent<CharacterController>().enabled = false;
+        yield return new WaitForSeconds(2.5f);  
+        //角色死亡传送回出生点
+        //用move会被路径上的东西卡主,传送最好还是重新生成或者取消碰撞体或者setposition     
+        SceneFader fade = Instantiate(sceneFaderPrefeb);
+        yield return StartCoroutine(fade.FadeOut(3f));
+        player.GetComponent<Transform>().SetPositionAndRotation(GetDestination(TransitionDestination.DestinationTag.ENTER).transform.position, transform.rotation);
+        //player.GetComponent<CharacterController>().Move(GetDestination(TransitionDestination.DestinationTag.ENTER).transform.position - player.transform.position);
+        //player.GetComponent<CharacterController>().Move(Vector3.zero);
+        player.GetComponent<CharacterController>().enabled = true;
+        GameManager.Instance.playerStats.CurrentHealth = GameManager.Instance.playerStats.MaxHealth;
+        GameManager.Instance.PlayAgainObserver();
+        yield return StartCoroutine(fade.FadeIn(3f));
+        SaveManager.Instance.SavePlayerData();
+        yield break;
+    }
+
+    public void PlayAgain()
+    {
+        GameManager.Instance.playerStats.gameObject.GetComponent<PlayerControllerWASD>().ObserverFlag = false;
     }
 }
