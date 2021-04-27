@@ -59,18 +59,22 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
             enemystates = EnemyStates.PATROL;
             GetNewWayPoint();
         }
-        //FIXME:场景切换后修改掉
+        //GameManager.Instance.AddObserver(this);
+    }
+    //先加载场景再加载怪物,否则可能找不到GameManager而报错
+    void OnEnable()
+    {
         GameManager.Instance.AddObserver(this);
     }
-    //TODO:先加载场景再加载怪物,否则可能找不到GameManager而报错
-    //void OnEnable()
-    //{
-    //    GameManager.Instance.AddObserver(this);
-    //}
     void OnDisable()
     {
         if (!GameManager.IsInitialized) return;
         GameManager.Instance.RemoveObserver(this);
+
+        if(GetComponent<LootSpwaner>()&&isDead)
+        {
+            GetComponent<LootSpwaner>().Spawnloot();
+        }
     }
 
     // Update is called once per frame
@@ -149,9 +153,6 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
                 break;
 
             case EnemyStates.CHASE:       
-                isWalk = false;
-                isChase = true;
-                agent.speed = speed;
                 //脱战则回到上一个状态
                 if (!FoundPlayer())
                 {
@@ -172,13 +173,6 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
                     }
                     
                 }
-                //追击
-                else
-                {
-                    isFollow = true;
-                    agent.isStopped = false;//必须
-                    agent.destination = attackTarget.transform.position;
-                }       
                 //在攻击范围内则攻击
                 if (TargetInAttackRange()||TargetInSkillRange())
                 {
@@ -192,6 +186,16 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
                         //执行攻击
                         Attack();
                     }
+                }
+                //追击
+                else
+                {
+                    isFollow = true;
+                    agent.isStopped = false;//必须
+                    agent.destination = attackTarget.transform.position;
+                    isWalk = false;
+                    isChase = true;
+                    agent.speed = speed;
                 }
 
                 break;
@@ -289,6 +293,12 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
         isChase = false;
         isWalk = false;
         attackTarget = null;
+    }
+
+    public void PlayAgain()
+    {
+        anim.SetBool("Win", false);
+        playerDead = false;
     }
 }
 
