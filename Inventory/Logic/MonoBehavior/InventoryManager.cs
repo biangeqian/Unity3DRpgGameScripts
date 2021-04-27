@@ -11,8 +11,11 @@ public class InventoryManager : Singleton<InventoryManager>
         public RectTransform originalParent;
     }
     [Header("Inventory Data")]
+    public InventoryDatat_SO inventoryTemplate;
     public InventoryDatat_SO inventoryData;
+    public InventoryDatat_SO actionTemplate;
     public InventoryDatat_SO actionData;
+    public InventoryDatat_SO equipmentTemplate;
     public InventoryDatat_SO equipmentData;
 
     [Header("ContainerS")]
@@ -30,9 +33,28 @@ public class InventoryManager : Singleton<InventoryManager>
     [Header("Stats Text")]
     public Text healthText;
     public Text attackText;
+    [Header("Tooltip")]
+    public ItemTooltip tooltip;
 
+    protected override void Awake() 
+    {
+        base.Awake();
+        if(inventoryTemplate!=null)
+        {
+            inventoryData=Instantiate(inventoryTemplate);
+        }
+        if(actionTemplate!=null)
+        {
+            actionData=Instantiate(actionTemplate);
+        }
+        if(inventoryTemplate!=null)
+        {
+            equipmentData=Instantiate(equipmentTemplate);
+        }
+    }
     void Start()
     {
+        LoadData();
         inventoryUI.RefreshUI();
         actionUI.RefreshUI();
         equipmentUI.RefreshUI();
@@ -46,6 +68,20 @@ public class InventoryManager : Singleton<InventoryManager>
         UpdateStatsText(GameManager.Instance.playerStats.MaxHealth,GameManager.Instance.playerStats.attackData.minDamage,
         GameManager.Instance.playerStats.attackData.maxDamage);
     }
+
+    public void SaveData()
+    {
+        SaveManager.Instance.Save(inventoryData,inventoryData.name);
+        SaveManager.Instance.Save(actionData,actionData.name);
+        SaveManager.Instance.Save(equipmentData,equipmentData.name);
+    }
+    public void LoadData()
+    {
+        SaveManager.Instance.Load(inventoryData,inventoryData.name);
+        SaveManager.Instance.Load(actionData,actionData.name);
+        SaveManager.Instance.Load(equipmentData,equipmentData.name);
+    }
+
     public void UpdateStatsText(int health,int min,int max){
         healthText.text=health.ToString();
         attackText.text=min+" - "+max;
