@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System.Diagnostics;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -18,7 +19,7 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
     public  float sightRadius;//怪物可视范围
     public bool isGuard;//是否是守卫型的敌人
     private float speed;//记录原有速度
-    protected GameObject attackTarget;//攻击目标
+    public GameObject attackTarget;//攻击目标
     public float lookAtTime;//停留时间
     private float remainLookAtTime;
     private float lastAttackTime;//攻击CD
@@ -80,6 +81,7 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
     // Update is called once per frame
     void Update()
     {
+        
         if (characterStats.CurrentHealth == 0)
         {
             isDead = true;
@@ -152,12 +154,15 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
                 }
                 break;
 
-            case EnemyStates.CHASE:       
+            case EnemyStates.CHASE:   
+                isWalk = false;
+                isChase = true;    
+                agent.speed = speed;
                 //脱战则回到上一个状态
                 if (!FoundPlayer())
                 {
+                    
                     isFollow = false;
-                    agent.isStopped = false;//
                     if (remainLookAtTime > 0)
                     {
                         agent.destination = transform.position;
@@ -165,6 +170,7 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
                     }
                     else if(isGuard)
                     {
+                      
                         enemystates = EnemyStates.GUARD;
                     }
                     else
@@ -173,31 +179,31 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
                     }
                     
                 }
-                //在攻击范围内则攻击
-                if (TargetInAttackRange()||TargetInSkillRange())
-                {
-                    isFollow = false;
-                    agent.isStopped = true;
-                    if (lastAttackTime < 0)
-                    {
-                        lastAttackTime = characterStats.attackData.coolDown;
-                        //判断暴击
-                        characterStats.isCritical = UnityEngine.Random.value < characterStats.attackData.criticalChance;
-                        //执行攻击
-                        Attack();
-                    }
-                }
-                //追击
                 else
                 {
-                    isFollow = true;
-                    agent.isStopped = false;//必须
-                    agent.destination = attackTarget.transform.position;
-                    isWalk = false;
-                    isChase = true;
-                    agent.speed = speed;
+                    agent.destination=attackTarget.transform.position;
+                    //在攻击范围内则攻击
+                    if (TargetInAttackRange()||TargetInSkillRange())
+                    {
+                        
+                        isFollow = false;
+                        agent.isStopped = true;
+                        if (lastAttackTime < 0)
+                        {
+                            lastAttackTime = characterStats.attackData.coolDown;
+                            //判断暴击
+                            characterStats.isCritical = UnityEngine.Random.value < characterStats.attackData.criticalChance;
+                            //执行攻击                            
+                            Attack();
+                        }
+                    }
+                    else
+                    {
+                        isFollow = true;
+                        agent.isStopped = false;
+                    }
+                    
                 }
-
                 break;
             case EnemyStates.DEAD:
                 coll.enabled = false;
@@ -240,14 +246,18 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
     bool TargetInAttackRange()
     {
         if (attackTarget != null)
-            return Vector3.Distance(attackTarget.transform.position, transform.position) <= characterStats.attackData.attackRange;
+        {
+            return (agent.remainingDistance) <= characterStats.attackData.attackRange;
+        } 
         else
+        {
             return false;
+        }         
     }
     bool TargetInSkillRange()
     {
         if (attackTarget != null)
-            return Vector3.Distance(attackTarget.transform.position, transform.position) <= characterStats.attackData.skillRange;
+            return (agent.remainingDistance) <= characterStats.attackData.skillRange;
         else
             return false;
     }
@@ -277,8 +287,12 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
     {
         if (attackTarget != null&&transform.IsFacingTarget(attackTarget.transform))
         {
-            var targetStats = attackTarget.GetComponent<CharacterStats>();
-            targetStats.TakeDamage(characterStats, targetStats);
+            //UnityEngine.Debug.Log(agent.remainingDistance);
+            if(agent.remainingDistance<=characterStats.attackData.attackRange)
+            {
+                var targetStats = attackTarget.GetComponent<CharacterStats>();
+                targetStats.TakeDamage(characterStats, targetStats);
+            } 
         }
         
     }
