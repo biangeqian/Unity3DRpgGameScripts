@@ -44,6 +44,7 @@ public class PlayerControllerWASD : MonoBehaviour
     private bool ReadyToJump=true;
     //垂直速度
     float VerticalSpeed=-1f;
+    public bool InputBlock=false;
 
     private Animator anim;
     private CharacterStats characterStats;
@@ -107,7 +108,7 @@ public class PlayerControllerWASD : MonoBehaviour
         else
         {
             //眩晕时也要计算重力
-            if (!isDizzy)
+            if (!isDizzy&&!InputBlock)
             {
                 if (controller.enabled == true)
                 {
@@ -179,7 +180,7 @@ public class PlayerControllerWASD : MonoBehaviour
             //在空中则施加重力
             VerticalSpeed-=gravity*Time.deltaTime;
         }
-        
+         
         if(IsGrounded)
         {
             RaycastHit hit;
@@ -195,7 +196,8 @@ public class PlayerControllerWASD : MonoBehaviour
         }
         else
         {
-            HorizontalVelocity=movementSpeed*transform.forward;
+            //往前跳
+            //HorizontalVelocity=movementSpeed*transform.forward;
         }
 
         Vector3 movement=HorizontalVelocity*Time.deltaTime;;
