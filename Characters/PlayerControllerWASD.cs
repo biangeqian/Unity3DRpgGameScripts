@@ -30,6 +30,11 @@ public class PlayerControllerWASD : MonoBehaviour
     public Vector2 cameraAngles;
     Vector3 newPosition= new Vector3(0, 3, -20);
 
+    public float maxDistance=2500f;
+    public float minDistance=25f;
+    public LayerMask mask;
+    
+
     [Header("Player Movement Data")]
     private CharacterController controller;
     public Vector3 moveDirection;
@@ -93,6 +98,7 @@ public class PlayerControllerWASD : MonoBehaviour
     {
         isThirdPerson=true;//不写就成false了,但是初始化的明明是true,不知道为什么,离谱
         SaveManager.Instance.LoadPlayerData();
+        cameraObject.localPosition = newPosition;
     }
     void Update()
     {
@@ -230,12 +236,13 @@ public class PlayerControllerWASD : MonoBehaviour
         Quaternion smoothRotation = Quaternion.Slerp(transform.rotation, targetDirection, rotationSpeed * Time.deltaTime);
         transform.rotation = smoothRotation;
     }
-    //相机移动
-    private void CameraMovement()
+    //相机移动 滚轮+碰撞检测
+    private void CameraMovemnetScroll()
     {
         cameraSystem.position = Vector3.Lerp(cameraSystem.position, cameraFollowTarget.position, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed);
         cameraAngles.x += (cameraInput.x * cameraFollowSpeed) * Time.fixedDeltaTime;
         cameraAngles.y -= (cameraInput.y * cameraFollowSpeed) * Time.fixedDeltaTime;
+        //限制仰角
         if (isThirdPerson)
         {
             cameraAngles.y = Mathf.Clamp(cameraAngles.y, cameraMinAngle, cameraMaxAngle);
@@ -251,30 +258,67 @@ public class PlayerControllerWASD : MonoBehaviour
         rotation = Vector3.zero;
         rotation.x = cameraAngles.y;
         cameraPivot.localRotation = Quaternion.Euler(rotation);
+
+        if(isThirdPerson)
+        {
+            Vector3 direction=Vector3.zero;
+            float distance=(cameraObject.position-cameraFollowTarget.position).magnitude;
+            //滚轮改变distance大小
+            float z=inputController.Movement.Scroll.ReadValue<float>();
+            if(z>0)
+            {
+                //Debug.Log("1");
+                direction=cameraObject.position-cameraFollowTarget.position;
+                cameraObject.position = Vector3.Lerp(cameraObject.position, cameraObject.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
+            }
+            else if(z<0)
+            {
+                direction=cameraFollowTarget.position-cameraObject.position;
+                cameraObject.position = Vector3.Lerp(cameraObject.position, cameraObject.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
+            }
+        
+            //if 地形遮挡就减小 elseif小于最小值就增大
+            if(SignUpdate(cameraFollowTarget.position+Vector3.up*1f,cameraObject.position,0.3f, distance,0.6f,mask))
+            {
+                direction=cameraFollowTarget.position-cameraObject.position;
+                cameraObject.position = Vector3.Lerp(cameraObject.position, cameraObject.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed);
+            }
+            else if((cameraObject.position - cameraFollowTarget.position).sqrMagnitude<minDistance)
+            {
+                direction=cameraObject.position-cameraFollowTarget.position;
+                cameraObject.position = Vector3.Lerp(cameraObject.position, cameraObject.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
+            }
+            else if((cameraObject.position - cameraFollowTarget.position).sqrMagnitude>maxDistance)
+            {
+                direction=cameraFollowTarget.position-cameraObject.position;
+                cameraObject.position = Vector3.Lerp(cameraObject.position, cameraObject.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
+            }
+        } 
     }
     //相机切换
     private void CameraChangeView()
     {
-        //这里是长按v时有一个类似刺客信条鹰眼的第三人称窥视效果,也可以改成和英灵殿一样的短按长久切换
-        //if (northInput.fallingEdge)//第一人称
         if(Keyboard.current.vKey.wasPressedThisFrame)
         {
             if(isThirdPerson== true)
             {
                 isThirdPerson = false; 
+                //cameraMaxAngle=60f;
+                //cameraMinAngle=0f;
                 newPosition = new Vector3(0, 1.03f, 0.16f);
+                cameraObject.localPosition =newPosition;
             }
             else
             {
                 isThirdPerson = true;
+                //cameraMaxAngle=0f;
+                //cameraMinAngle=-60f;
                 newPosition = new Vector3(0, 3, -20);
-            }
-            
+                cameraObject.localPosition =newPosition;
+            }  
         }
-        //cameraPivot.localPosition = Vector3.Lerp(cameraPivot.localPosition, newPosition, Time.deltaTime * cameraFollowSpeed*2f);
-        cameraObject.localPosition = Vector3.Lerp(cameraObject.localPosition, newPosition, Time.deltaTime * cameraFollowSpeed * 2f);
+        
     }
-
     private void Attack()
     {
         if (lastAttackTime < 0)
@@ -320,7 +364,7 @@ public class PlayerControllerWASD : MonoBehaviour
         //相机切换角度,一三人称切换的时候用
         CameraChangeView();
         //相机移动
-        CameraMovement();
+        CameraMovemnetScroll();
     }
 
     private bool WasGround(){
@@ -342,5 +386,24 @@ public class PlayerControllerWASD : MonoBehaviour
             return false;
         }
     }
-
+    //检测是否有碰撞体遮挡在 targetPoint 和 selfPosition 之间
+    //targetPoint               目标位置
+    //selfPosition              自身位置
+    //checkRadios               球星检测区域半径
+    //maxDis                    最大检测距离
+    //stepDis                   检测倒碰撞后向前偏移的位置,  建议大于检测半径*2
+    //s_mask                    碰撞检测遮罩
+    bool SignUpdate(Vector3 targetPoint,Vector3 selfPosition,float checkRadios,float maxDis,float stepDis,LayerMask s_mask)
+    {
+        Ray ray=new Ray(targetPoint,selfPosition-targetPoint);
+        RaycastHit hit=new RaycastHit();
+        if(Physics.SphereCast(ray,checkRadios,out hit,maxDis,s_mask))
+        {        
+            //return ray.GetPoint(hit.distance-stepDis);
+            return true;
+        }   
+        //无碰撞返回原始位置
+        //return selfPosition;
+        return false;
+    }   
 }
