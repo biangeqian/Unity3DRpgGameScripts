@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -73,7 +73,7 @@ public class SceneController : Singleton<SceneController>,IEndGameObserver
     }
     public void TransitionToFirstLevel()
     {
-        StartCoroutine(LoadLevel("SampleScene"));
+        StartCoroutine(LoadLevel("Scene_Demo"));
     }
     IEnumerator LoadLevel(string scene)
     {
@@ -95,6 +95,7 @@ public class SceneController : Singleton<SceneController>,IEndGameObserver
         if (SceneManager.GetActiveScene().name != "Menu")
         {
             SaveManager.Instance.SavePlayerData();
+            InventoryManager.Instance.SaveData();
             yield return SceneManager.LoadSceneAsync("Menu");
             yield break;
         }
@@ -114,6 +115,7 @@ public class SceneController : Singleton<SceneController>,IEndGameObserver
         //用move会被路径上的东西卡主,传送最好还是重新生成或者取消碰撞体或者setposition     
         SceneFader fade = Instantiate(sceneFaderPrefeb);
         yield return StartCoroutine(fade.FadeOut(3f));
+        //默认从entrance传送门处复活
         player.GetComponent<Transform>().SetPositionAndRotation(GetDestination(TransitionDestination.DestinationTag.ENTER).transform.position, transform.rotation);
         //player.GetComponent<CharacterController>().Move(GetDestination(TransitionDestination.DestinationTag.ENTER).transform.position - player.transform.position);
         //player.GetComponent<CharacterController>().Move(Vector3.zero);
