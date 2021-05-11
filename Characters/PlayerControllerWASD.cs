@@ -17,6 +17,8 @@ public class PlayerControllerWASD : MonoBehaviour
     public Transform cameraSystem;
     public Transform cameraPivot;
     public Transform cameraObject;
+    public Transform cameraBox;
+    public Transform cameraBase;
     //相机跟随的物体
     public Transform cameraFollowTarget;
     [Range(0, 10)]
@@ -33,6 +35,7 @@ public class PlayerControllerWASD : MonoBehaviour
     public float maxDistance=2500f;
     public float minDistance=25f;
     public LayerMask mask;
+    private float loveSqrDistance;
     
 
     [Header("Player Movement Data")]
@@ -68,6 +71,8 @@ public class PlayerControllerWASD : MonoBehaviour
         cameraSystem = GameObject.FindGameObjectsWithTag("CameraSystem")[0].transform;
         cameraPivot = GameObject.FindGameObjectsWithTag("CameraPivot")[0].transform;
         cameraObject = GameObject.FindGameObjectsWithTag("MainCamera")[0].transform;
+        cameraBox=GameObject.FindGameObjectsWithTag("CameraBox")[0].transform;
+        cameraBase=GameObject.FindGameObjectsWithTag("CameraBase")[0].transform;;
     }
 
     #region inputControls
@@ -98,7 +103,8 @@ public class PlayerControllerWASD : MonoBehaviour
     {
         isThirdPerson=true;//不写就成false了,但是初始化的明明是true,不知道为什么,离谱
         SaveManager.Instance.LoadPlayerData();
-        cameraObject.localPosition = newPosition;
+        cameraBox.localPosition = newPosition;
+        loveSqrDistance=(cameraBox.position-(cameraFollowTarget.position+Vector3.up*0.5f)).sqrMagnitude;
     }
     void Update()
     {
@@ -114,7 +120,7 @@ public class PlayerControllerWASD : MonoBehaviour
         else
         {
             //眩晕时也要计算重力
-            if (!isDizzy&&!InputBlock)
+            if (!isDizzy)
             {
                 if (controller.enabled == true)
                 {
@@ -239,7 +245,7 @@ public class PlayerControllerWASD : MonoBehaviour
     //相机移动 滚轮+碰撞检测
     private void CameraMovemnetScroll()
     {
-        cameraSystem.position = Vector3.Lerp(cameraSystem.position, cameraFollowTarget.position, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed);
+        cameraSystem.position = Vector3.Lerp(cameraSystem.position, cameraFollowTarget.position+Vector3.up*0.5f, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed);
         cameraAngles.x += (cameraInput.x * cameraFollowSpeed) * Time.fixedDeltaTime;
         cameraAngles.y -= (cameraInput.y * cameraFollowSpeed) * Time.fixedDeltaTime;
         //限制仰角
@@ -262,37 +268,71 @@ public class PlayerControllerWASD : MonoBehaviour
         if(isThirdPerson)
         {
             Vector3 direction=Vector3.zero;
-            float distance=(cameraObject.position-cameraFollowTarget.position).magnitude;
-            //滚轮改变distance大小
-            float z=inputController.Movement.Scroll.ReadValue<float>();
-            if(z>0)
-            {
-                //Debug.Log("1");
-                direction=cameraObject.position-cameraFollowTarget.position;
-                cameraObject.position = Vector3.Lerp(cameraObject.position, cameraObject.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
-            }
-            else if(z<0)
-            {
-                direction=cameraFollowTarget.position-cameraObject.position;
-                cameraObject.position = Vector3.Lerp(cameraObject.position, cameraObject.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
-            }
-        
+            float distance=(cameraBox.position-(cameraFollowTarget.position+Vector3.up*0.5f)).magnitude;
+
             //if 地形遮挡就减小 elseif小于最小值就增大
-            if(SignUpdate(cameraFollowTarget.position+Vector3.up*1f,cameraObject.position,0.3f, distance,0.6f,mask))
+            if(SignUpdate(cameraFollowTarget.position+Vector3.up*0.5f,cameraBox.position,0.3f, distance,0.6f,mask))
             {
-                direction=cameraFollowTarget.position-cameraObject.position;
-                cameraObject.position = Vector3.Lerp(cameraObject.position, cameraObject.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed);
+                direction=(cameraFollowTarget.position+Vector3.up*0.5f)-cameraBox.position;
+                //if 距离小于最小值,则摄像机移动到固定反向机位
+                if(direction.sqrMagnitude<minDistance)
+                {
+                    //摄像机移动到固定反向机位
+                    cameraObject.position=Vector3.Lerp(cameraObject.position, cameraBox.position+direction+direction.normalized*0.2f, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed);
+                }
+                else
+                {
+                    cameraBox.position = Vector3.Lerp(cameraBox.position, cameraBox.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
+                }
             }
-            else if((cameraObject.position - cameraFollowTarget.position).sqrMagnitude<minDistance)
+            else
             {
-                direction=cameraObject.position-cameraFollowTarget.position;
-                cameraObject.position = Vector3.Lerp(cameraObject.position, cameraObject.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
-            }
-            else if((cameraObject.position - cameraFollowTarget.position).sqrMagnitude>maxDistance)
-            {
-                direction=cameraFollowTarget.position-cameraObject.position;
-                cameraObject.position = Vector3.Lerp(cameraObject.position, cameraObject.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
-            }
+                //回到正向机位
+                cameraObject.localPosition=Vector3.zero;
+                //滚轮改变distance大小
+                float z=inputController.Movement.Scroll.ReadValue<float>();
+                if(z>0)
+                {
+                    //Debug.Log("1");
+                    direction=(cameraBox.position-(cameraFollowTarget.position+Vector3.up*0.5f));
+                    cameraBox.position = Vector3.Lerp(cameraBox.position, cameraBox.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
+                    loveSqrDistance=(cameraBox.position-(cameraFollowTarget.position+Vector3.up*0.5f)).sqrMagnitude;
+                }
+                else if(z<0)
+                {
+                    direction=(cameraFollowTarget.position+Vector3.up*0.5f)-cameraBox.position;
+                    cameraBox.position = Vector3.Lerp(cameraBox.position, cameraBox.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
+                    loveSqrDistance=(cameraBox.position-(cameraFollowTarget.position+Vector3.up*0.5f)).sqrMagnitude;
+                }
+                else
+                {
+                    //回到原先的distance
+                    if(loveSqrDistance>minDistance&&loveSqrDistance<maxDistance)
+                    {
+                        if(loveSqrDistance>(cameraBox.position-(cameraFollowTarget.position+Vector3.up*0.5f)).sqrMagnitude)
+                        {
+                            direction=cameraBox.position-(cameraFollowTarget.position+Vector3.up*0.5f);
+                            Vector3 nextPosition=Vector3.Lerp(cameraBox.position, cameraBox.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
+                            float nextDistance=(nextPosition-(cameraFollowTarget.position+Vector3.up*0.5f)).magnitude;
+                            if(!SignUpdate(cameraFollowTarget.position+Vector3.up*0.5f,cameraBox.position,0.3f, nextDistance,0.6f,mask))
+                            {
+                                cameraBox.position = nextPosition;
+                            }        
+                        }
+                    }
+                } 
+                //范围限制
+                if((cameraBox.position - (cameraFollowTarget.position+Vector3.up*0.5f)).sqrMagnitude<minDistance)
+                {
+                    direction=cameraBox.position-(cameraFollowTarget.position+Vector3.up*0.5f);
+                    cameraBox.position = Vector3.Lerp(cameraBox.position, cameraBox.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
+                }
+                else if((cameraBox.position - (cameraFollowTarget.position+Vector3.up*0.5f)).sqrMagnitude>maxDistance)
+                {
+                    direction=(cameraFollowTarget.position+Vector3.up*0.5f)-cameraBox.position;
+                    cameraBox.position = Vector3.Lerp(cameraBox.position, cameraBox.position+direction, Time.deltaTime * cameraFollowSpeed * cameraMoveSpeed*0.1f);
+                }
+            }  
         } 
     }
     //相机切换
@@ -303,18 +343,18 @@ public class PlayerControllerWASD : MonoBehaviour
             if(isThirdPerson== true)
             {
                 isThirdPerson = false; 
-                //cameraMaxAngle=60f;
-                //cameraMinAngle=0f;
+                cameraMaxAngle=20f;
+                cameraMinAngle=-45f;
                 newPosition = new Vector3(0, 1.03f, 0.16f);
-                cameraObject.localPosition =newPosition;
+                cameraBox.localPosition =newPosition;
             }
             else
             {
                 isThirdPerson = true;
-                //cameraMaxAngle=0f;
-                //cameraMinAngle=-60f;
+                cameraMaxAngle=60f;
+                cameraMinAngle=-20f;
                 newPosition = new Vector3(0, 3, -20);
-                cameraObject.localPosition =newPosition;
+                cameraBox.localPosition =newPosition;
             }  
         }
         
