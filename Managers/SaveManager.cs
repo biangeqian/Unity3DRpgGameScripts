@@ -49,15 +49,12 @@ public class SaveManager : Singleton<SaveManager>
     {
         if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
+            //保存数据
+            SaveManager.Instance.SavePlayerData();
+            InventoryManager.Instance.SaveData();
+            QuestManager.Instance.SaveQuestManager();
+            
             SceneController.Instance.TransitionToMenu();
         }
-        //if (Keyboard.current.kKey.wasPressedThisFrame)
-        //{
-        //    SavePlayerData();
-        //}
-        //if (Keyboard.current.lKey.wasPressedThisFrame)
-        //{
-        //    LoadPlayerData();
-        //}
     }
 }
