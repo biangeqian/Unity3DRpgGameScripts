@@ -203,7 +203,7 @@ public class PlayerControllerWASD : MonoBehaviour
             }
             else
             {
-                Debug.Log("不会吧不会吧,不会真能else吧");
+                //Debug.Log("不会吧不会吧,不会真能else吧");
             }
         }
         else

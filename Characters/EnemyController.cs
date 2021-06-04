@@ -76,6 +76,10 @@ public class EnemyController : MonoBehaviour,IEndGameObserver
         {
             GetComponent<LootSpwaner>().Spawnloot();
         }
+        if(QuestManager.IsInitialized&&isDead)
+        {
+            QuestManager.Instance.UpdateQuestProgress(this.name,1);
+        }
     }
 
     // Update is called once per frame
