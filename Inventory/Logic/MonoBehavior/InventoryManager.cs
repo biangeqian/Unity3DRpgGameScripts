@@ -122,4 +122,45 @@ public class InventoryManager : Singleton<InventoryManager>
         return false;
     }
     #endregion
+
+    #region 检测任务物品
+    public int CheckQuestItemInBag(string questItemName)
+    {
+        int sum=0;
+        foreach(var item in inventoryData.items)
+        {
+            if(item.itemData!=null)
+            {
+                if(item.itemData.itemName==questItemName)
+                {
+                    sum++;
+                    //这里会导致重复添加的问题.应该只添加当前任务
+                    //QuestManager.Instance.UpdateQuestProgress(item.itemData.itemName,item.amount);
+                }
+            }
+        }
+        foreach(var item in actionData.items)
+        {
+            if(item.itemData!=null)
+            {
+                if(item.itemData.itemName==questItemName)
+                {
+                    sum++;
+                    //QuestManager.Instance.UpdateQuestProgress(item.itemData.itemName,item.amount);
+                }
+            }
+        }
+        return sum;
+    }
+    #endregion
+
+    //检测背包和快捷栏物品
+    public InventoryItem QuestItemInBag(ItemData_SO questItem)
+    {
+        return inventoryData.items.Find(i=>i.itemData==questItem);
+    }
+    public InventoryItem QuestItemInAction(ItemData_SO questItem)
+    {
+        return actionData.items.Find(i=>i.itemData==questItem);
+    }
 }
