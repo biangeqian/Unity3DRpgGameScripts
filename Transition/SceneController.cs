@@ -34,6 +34,8 @@ public class SceneController : Singleton<SceneController>,IEndGameObserver
         //保存数据
         SaveManager.Instance.SavePlayerData();
         InventoryManager.Instance.SaveData();
+        QuestManager.Instance.SaveQuestManager();
+
         if (SceneManager.GetActiveScene().name != sceneName)
         {
             //异步加载
@@ -73,7 +75,7 @@ public class SceneController : Singleton<SceneController>,IEndGameObserver
     }
     public void TransitionToFirstLevel()
     {
-        StartCoroutine(LoadLevel("Scene_Demo"));
+        StartCoroutine(LoadLevel("SampleScene"));
     }
     IEnumerator LoadLevel(string scene)
     {
@@ -81,11 +83,13 @@ public class SceneController : Singleton<SceneController>,IEndGameObserver
         {
             SceneFader fade = Instantiate(sceneFaderPrefeb);
             yield return StartCoroutine(fade.FadeOut(2f));
+            //注意这个类叫SceneController,SceneManager是系统类名
             yield return SceneManager.LoadSceneAsync(scene);
             yield return player = Instantiate(playerPrefeb, GameManager.Instance.GetEntrance().position, GameManager.Instance.GetEntrance().rotation);
-            //保存
-            SaveManager.Instance.SavePlayerData();
-            InventoryManager.Instance.SaveData();
+            //保存,这样强退也有存档
+            // SaveManager.Instance.SavePlayerData();
+            // InventoryManager.Instance.SaveData();
+            // QuestManager.Instance.SaveQuestManager();
             yield return StartCoroutine(fade.FadeIn(2f));
             yield break;
         }  
@@ -94,8 +98,6 @@ public class SceneController : Singleton<SceneController>,IEndGameObserver
     {
         if (SceneManager.GetActiveScene().name != "Menu")
         {
-            SaveManager.Instance.SavePlayerData();
-            InventoryManager.Instance.SaveData();
             yield return SceneManager.LoadSceneAsync("Menu");
             yield break;
         }
