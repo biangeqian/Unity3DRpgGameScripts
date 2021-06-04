@@ -23,6 +23,8 @@ public class SlotHolder : MonoBehaviour,IPointerClickHandler,IPointerEnterHandle
         if(itemUI.GetItem().itemType==ItemType.Useable&&itemUI.Bag.items[itemUI.Index].amount>0){
             GameManager.Instance.playerStats.ApplyHealth(itemUI.GetItem().useableData.healthPoint);
             itemUI.Bag.items[itemUI.Index].amount-=1;
+            //检查任务物品更新进度
+            QuestManager.Instance.UpdateQuestProgress(itemUI.GetItem().itemName,-1);
         }
         UpdateItem();
     }
