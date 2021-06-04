@@ -37,12 +37,27 @@ public class OptionUI : MonoBehaviour
                 if(QuestManager.Instance.HaveQuest(newTask.questData))
                 {
                     //判断是否完成,给予奖励
-
+                    if(QuestManager.Instance.GetTask(newTask.questData).IsComplete)
+                    {
+                        newTask.questData.GiveRewards();
+                        QuestManager.Instance.GetTask(newTask.questData).IsFinished=true;
+                    }
                 }
                 else
                 {
+                    //接受任务
+                    newTask.IsStarted=true;
+                    //检查背包物品
+                    foreach(var requireItem in newTask.questData.questRequires)
+                    {
+                        int sum=InventoryManager.Instance.CheckQuestItemInBag(requireItem.name);
+                        requireItem.currentAmount=sum;
+                    }
+                    newTask.questData.CheckQuestProcess();
                     QuestManager.Instance.tasks.Add(newTask);
-                    QuestManager.Instance.GetTask(newTask.questData).IsStarted=true;
+                    //QuestManager.Instance.GetTask(newTask.questData).IsStarted=true;
+                    
+
                 }
             }
         }
