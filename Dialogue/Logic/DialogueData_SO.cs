@@ -34,4 +34,17 @@ public class DialogueData_SO : ScriptableObject
         }
     }
 #endif
+    //这里实际上是返回了对话里包含的最后一个任务
+    public QuestData_SO GetQuest()
+    {
+        QuestData_SO currentQuest=null;
+        foreach(var piece in dialoguePieces)
+        {
+            if(piece.quest!=null)
+            {
+                currentQuest=piece.quest;
+            }
+        }
+        return currentQuest;
+    }
 }
